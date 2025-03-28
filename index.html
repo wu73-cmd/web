@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>记录一下</title>
+    <!-- 自定义 favicon，替换为你的图标路径 -->
+    <link rel="icon" type="image/x-icon" href="https://raw.githubusercontent.com/wu73-cmd/tu/refs/heads/main/log/W.ico?token=GHSAT0AAAAAAC3XLXY24ALCZI3GJYBU7UGQZ7GHNLQ">
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            min-height: 100vh;
+            color: white;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+        }
+        .container {
+            max-width: 800px;
+            margin: 50px auto;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 20px;
+            border-radius: 10px;
+        }
+        textarea {
+            width: 100%;
+            height: 100px;
+            margin-bottom: 10px;
+            padding: 10px;
+            border-radius: 5px;
+            resize: none;
+            box-sizing: border-box;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #records {
+            margin-top: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .record {
+            padding: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+            position: relative;
+            word-wrap: break-word;
+        }
+        .reply {
+            margin-left: 20px;
+            border-left: 2px solid rgba(255, 255, 255, 0.5);
+            padding-left: 10px;
+        }
+        .delete-btn, .reply-btn {
+            padding: 5px 10px;
+            font-size: 12px;
+            margin-left: 10px;
+        }
+        .delete-btn {
+            background-color: #ff4444;
+        }
+        .delete-btn:hover {
+            background-color: #cc0000;
+        }
+        .reply-btn {
+            background-color: #1E90FF;
+        }
+        .reply-btn:hover {
+            background-color: #1C86EE;
+        }
+        .reply-form {
+            margin-top: 10px;
+            display: none;
+        }
+        .reply-form textarea {
+            height: 60px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>记录一下</h1>
+        <textarea id="textInput" placeholder="请输入文本，支持换行..."></textarea>
+        <button onclick="submitText()">提交</button>
+        <div id="records"></div>
+    </div>
+
+    <script>
+        // 设置管理员密码（可自行修改）
+        const ADMIN_PASSWORD = "6851042";
+
+        // 获取 Bing 每日壁纸
+        async function handleRequest() {
+  let backgroundImageUrl = 'https://www.bing.com/th?id=OHR.DefaultImage_EN-US.jpg'; // 默认备用图片
+  try {
+    const response = await fetch('https://www.bing.com/HPImageArchive.aspx?format=js&idx=0&n=1');
+    const data = await response.json();
+    if (data && data.images && data.images[0] && data.images[0].url) {
+      backgroundImageUrl = 'https://www.bing.com' + data.images[0].url;
+    }
+  } catch (error) {
+    console.error('获取 Bing 图片失败:', error);
+  }
+
+        // 从 localStorage 加载记录
+        function loadRecords() {
+            const records = JSON.parse(localStorage.getItem('records')) || [];
+            const recordsDiv = document.getElementById('records');
+            recordsDiv.innerHTML = '';
+            records.forEach((record, index) => {
+                const recordDiv = createRecordElement(record, index, 0);
+                recordsDiv.appendChild(recordDiv);
+            });
+        }
+
+        // 创建记录或回复的 DOM 元素，支持换行
+        function createRecordElement(record, index, level, parentIndex = null) {
+            const div = document.createElement('div');
+            div.className = level > 0 ? 'reply' : 'record';
+            // 将换行符 \n 替换为 <br>
+            const formattedText = record.text.replace(/\n/g, '<br>');
+            div.innerHTML = `
+                <strong>${record.timestamp}</strong><br>${formattedText}
+                <button class="delete-btn" onclick="deleteRecord(${index}, ${parentIndex})">删除</button>
+                <button class="reply-btn" onclick="toggleReplyForm(${index}, ${parentIndex})">回复</button>
+                <div class="reply-form" id="reply-form-${index}-${parentIndex || ''}">
+                    <textarea placeholder="请输入回复，支持换行..."></textarea>
+                    <button onclick="submitReply(${index}, ${parentIndex})">提交回复</button>
+                </div>
+            `;
+            if (record.replies && record.replies.length > 0) {
+                const repliesContainer = document.createElement('div');
+                record.replies.forEach((reply, replyIndex) => {
+                    const replyDiv = createRecordElement(reply, replyIndex, level + 1, index);
+                    repliesContainer.appendChild(replyDiv);
+                });
+                div.appendChild(repliesContainer);
+            }
+            return div;
+        }
+
+        // 提交主记录
+        function submitText() {
+            const textInput = document.getElementById('textInput');
+            const text = textInput.value.trim();
+            if (text === '') {
+                alert('请输入文本！');
+                return;
+            }
+
+            const timestamp = new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' });
+            const record = { timestamp, text, replies: [] };
+
+            const records = JSON.parse(localStorage.getItem('records')) || [];
+            records.push(record);
+            localStorage.setItem('records', JSON.stringify(records));
+
+            loadRecords();
+            textInput.value = '';
+        }
+
+        // 提交回复
+        function submitReply(parentIndex, grandParentIndex) {
+            const replyForm = document.getElementById(`reply-form-${parentIndex}-${grandParentIndex || ''}`);
+            const textarea = replyForm.querySelector('textarea');
+            const text = textarea.value.trim();
+            if (text === '') {
+                alert('请输入回复内容！');
+                return;
+            }
+
+            const timestamp = new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' });
+            const reply = { timestamp, text, replies: [] };
+
+            const records = JSON.parse(localStorage.getItem('records')) || [];
+            let targetRecord = records;
+            if (grandParentIndex !== null) {
+                targetRecord = records[grandParentIndex].replies;
+            }
+            targetRecord[parentIndex].replies.push(reply);
+            localStorage.setItem('records', JSON.stringify(records));
+
+            loadRecords();
+        }
+
+        // 删除记录或回复
+        function deleteRecord(index, parentIndex) {
+            const password = prompt('请输入管理员密码：');
+            if (password !== ADMIN_PASSWORD) {
+                alert('密码错误，无权限删除！');
+                return;
+            }
+
+            const records = JSON.parse(localStorage.getItem('records')) || [];
+            if (parentIndex === null) {
+                records.splice(index, 1);
+            } else {
+                records[parentIndex].replies.splice(index, 1);
+            }
+            localStorage.setItem('records', JSON.stringify(records));
+            loadRecords();
+        }
+
+        // 切换回复表单显示
+        function toggleReplyForm(index, parentIndex) {
+            const replyForm = document.getElementById(`reply-form-${index}-${parentIndex || ''}`);
+            replyForm.style.display = replyForm.style.display === 'block' ? 'none' : 'block';
+        }
+
+        // 页面加载时执行
+        window.onload = function() {
+            fetchBingWallpaper();
+            loadRecords();
+        };
+    </script>
+</body>
+</html>
