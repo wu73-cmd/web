@@ -97,7 +97,16 @@
 <body>
     <div class="container">
         <h1>记录一下---可以当个记录本，只能本浏览器记录，不清除cookie可以长久存在</h1>
-        <textarea id="textInput" placeholder="请输入文本，支持换行...密码6365414"></textarea>
+        
+        <!-- START: 添加的访问信息显示区域 -->
+        <div id="visitor-info" style="padding: 10px; border: 1px solid #555; border-radius: 5px; margin-bottom: 20px;">
+            <p><strong>您的IP地址:</strong> <span id="visitor-ip">加载中...</span></p>
+            <p><strong>您是第:</strong> <span id="visit-count">加载中...</span> 次访问</p>
+            <p><strong>本次访问时间:</strong> <span id="last-visit-time">加载中...</span></p>
+        </div>
+        <!-- END: 添加的访问信息显示区域 -->
+
+        <textarea id="textInput" placeholder="请输入文本，支持换行...密码635414"></textarea>
         <button onclick="submitText()">提交</button>
         <div id="records"></div>
     </div>
@@ -323,5 +332,6 @@
     </script>
 </body>
 </html>
+
 
 
