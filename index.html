@@ -277,6 +277,50 @@
             fetchBingWallpaper();
             loadRecords();
         };
+        // 当整个网页内容加载完毕后执行
+    document.addEventListener('DOMContentLoaded', function() {
+        
+        // 你的 Cloudflare Worker 的 URL
+        const workerUrl = 'https://your-worker-name.your-account.workers.dev';
+
+        // 使用 fetch API 调用你的 Worker
+        fetch(workerUrl)
+            .then(response => {
+                // 检查响应是否成功
+                if (!response.ok) {
+                    throw new Error('网络响应错误');
+                }
+                return response.json(); // 将响应体解析为 JSON
+            })
+            .then(data => {
+                // 成功获取数据！现在将它显示在网页上
+                console.log('从 Worker 收到的数据:', data);
+
+                const visitCountElement = document.getElementById('visit-count'); // 或者 'visitor-count-placeholder'
+                const lastVisitTimeElement = document.getElementById('last-visit-time');
+
+                if (visitCountElement) {
+                    visitCountElement.textContent = data.visitCount; // 将访问次数填入占位符
+                }
+                
+                if (lastVisitTimeElement) {
+                    // 可以选择格式化日期，让它更好看
+                    const formattedDate = new Date(data.lastVisitTime + 'Z').toLocaleString(); // 'Z'表示UTC时间
+                    lastVisitTimeElement.textContent = formattedDate;
+                }
+            })
+            .catch(error => {
+                // 如果出现错误（例如网络问题或Worker没配置好），在控制台打印错误
+                console.error('获取访问数据失败:', error);
+
+                // 也可以在页面上显示一个友好的错误提示
+                const visitCountElement = document.getElementById('visit-count');
+                if (visitCountElement) {
+                    visitCountElement.textContent = '无法加载';
+                }
+            });
+    });
     </script>
 </body>
 </html>
+
