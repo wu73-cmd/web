@@ -289,49 +289,63 @@
         // 当整个网页内容加载完毕后执行
     document.addEventListener('DOMContentLoaded', function() {
         
-        // 你的 Cloudflare Worker 的 URL
-        const workerUrl = 'https://wu73-cmd.github.io/web';
+        // index.html 的 <script> 标签内
 
-        // 使用 fetch API 调用你的 Worker
-        fetch(workerUrl)
-            .then(response => {
-                // 检查响应是否成功
-                if (!response.ok) {
-                    throw new Error('网络响应错误');
-                }
-                return response.json(); // 将响应体解析为 JSON
-            })
-            .then(data => {
-                // 成功获取数据！现在将它显示在网页上
-                console.log('从 Worker 收到的数据:', data);
+// ... 您之前的所有函数 (fetchBingWallpaper, loadRecords, submitText 等) 保持不变 ...
 
-                const visitCountElement = document.getElementById('visit-count'); // 或者 'visitor-count-placeholder'
-                const lastVisitTimeElement = document.getElementById('last-visit-time');
+// 页面加载时执行
+window.onload = function() {
+    fetchBingWallpaper();
+    loadRecords();
+    fetchVisitorData(); // <-- 添加这一行，在页面加载时调用新函数
+};
 
-                if (visitCountElement) {
-                    visitCountElement.textContent = data.visitCount; // 将访问次数填入占位符
-                }
-                
-                if (lastVisitTimeElement) {
-                    // 可以选择格式化日期，让它更好看
-                    const formattedDate = new Date(data.lastVisitTime + 'Z').toLocaleString(); // 'Z'表示UTC时间
-                    lastVisitTimeElement.textContent = formattedDate;
-                }
-            })
-            .catch(error => {
-                // 如果出现错误（例如网络问题或Worker没配置好），在控制台打印错误
-                console.error('获取访问数据失败:', error);
+// 新增：专门用于获取和显示访问数据的函数
+function fetchVisitorData() {
+    // 你的 Cloudflare Worker 的 URL
+    const workerUrl = 'https://ip-api.sightwww.workers.dev';
 
-                // 也可以在页面上显示一个友好的错误提示
-                const visitCountElement = document.getElementById('visit-count');
-                if (visitCountElement) {
-                    visitCountElement.textContent = '无法加载';
-                }
-            });
-    });
+    // 使用 fetch API 调用你的 Worker
+    fetch(workerUrl)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('网络响应错误，状态码: ' + response.status);
+            }
+            return response.json(); // 将响应体解析为 JSON
+        })
+        .then(data => {
+            // 成功获取数据！现在将它显示在网页上
+            console.log('从 Worker 收到的数据:', data);
+
+            // 获取HTML中的占位符元素
+            const ipElement = document.getElementById('visitor-ip');
+            const visitCountElement = document.getElementById('visit-count');
+            const lastVisitTimeElement = document.getElementById('last-visit-time');
+
+            // 填充数据
+            if (ipElement) ipElement.textContent = data.ip;
+            if (visitCountElement) visitCountElement.textContent = data.visitCount;
+            
+            if (lastVisitTimeElement) {
+                // 将ISO格式的UTC时间转换为本地的、更易读的格式
+                const localTime = new Date(data.lastVisitTime).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' });
+                lastVisitTimeElement.textContent = localTime;
+            }
+        })
+        .catch(error => {
+            // 如果出现错误，在控制台打印错误，并在页面上显示提示
+            console.error('获取访问数据失败:', error);
+            const infoDiv = document.getElementById('visitor-info');
+            if (infoDiv) {
+                infoDiv.innerHTML = '<p style="color: red;">无法加载访客信息，请稍后重试。</p>';
+            }
+        });
+}
+);
     </script>
 </body>
 </html>
+
 
 
 
